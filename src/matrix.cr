@@ -1,3 +1,4 @@
+# coding: utf-8
 class Matrix(T)
   include Enumerable(T)
   include Iterable
@@ -229,19 +230,30 @@ class Matrix(T)
     matrix
   end
 
+  def repeated_square_power(n)
+    result = Matrix.identity(@columns)
+    square = self
+
+    while n > 0
+      result *= square if (n & 1) == 1
+      square *= square
+      n = n >> 1
+    end
+
+    result
+  end
+
   # Performs exponentiation
   def **(other : Int)
     m = self
     if other == 0
       Matrix.identity(@columns)
     elsif other < 0
-      (other.abs - 1).times { m *= self }
-      m.inverse
+      repeated_square_power(other.abs).inverse
     elsif other == 1
       clone
     else
-      (other - 1).times { m *= self }
-      m
+      repeated_square_power(other)
     end
   end
 
@@ -299,13 +311,13 @@ class Matrix(T)
     end
   end
 
-  def each(which = :all : Symbol)
+  def each(which : Symbol = :all)
     ItemIterator.new(self, directive: which)
   end
 
   # Yields every element along with its row and column index.
   # See #each for the optional directives.
-  def each_with_index(which = :all : Symbol)
+  def each_with_index(which : Symbol = :all)
     r, c = 0, 0
     each do |e|
       case which
@@ -332,15 +344,15 @@ class Matrix(T)
 
   # Yields every row and column index.
   # See #each for the optional directives.
-  def each_index(which = :all : Symbol)
+  def each_index(which : Symbol = :all)
     each_with_index(which) { |e, r, c| yield r, c }
   end
 
-  def each_index(which = :all : Symbol)
+  def each_index(which : Symbol = :all)
     IndexIterator.new(self, directive: which)
   end
 
-  def cycle(which = :all : Symbol)
+  def cycle(which : Symbol = :all)
     each(which).cycle
   end
 
@@ -365,7 +377,7 @@ class Matrix(T)
 
   # Returns the row and column index of the first occurrence of "value" in
   # the matrix, nil otherwise.
-  def index(value : T, which = :all : Symbol)
+  def index(value : T, which : Symbol = :all)
     each_with_index(which) do |e, r, c|
       return {r, c} if e == value
     end
