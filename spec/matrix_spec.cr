@@ -1,4 +1,4 @@
-require "matrix"
+require "../src/matrix"
 require "spec"
 
 describe Matrix do
