@@ -737,7 +737,7 @@ describe Matrix do
     end
 
     it "cycles" do
-      Matrix.identity(3).cycle.take(10).join.should eq("1000100011")
+      Matrix.identity(3).cycle.first(10).join.should eq("1000100011")
     end
   end
 
