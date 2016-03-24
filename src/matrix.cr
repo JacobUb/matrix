@@ -1,4 +1,3 @@
-# coding: utf-8
 class Matrix(T)
   include Enumerable(T)
   include Iterable
