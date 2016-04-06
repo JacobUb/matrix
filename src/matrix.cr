@@ -229,19 +229,30 @@ class Matrix(T)
     matrix
   end
 
+  def repeated_square_power(n)
+    result = Matrix.identity(@columns)
+    square = self
+
+    while n > 0
+      result *= square if (n & 1) == 1
+      square *= square
+      n = n >> 1
+    end
+
+    result
+  end
+
   # Performs exponentiation
   def **(other : Int)
     m = self
     if other == 0
       Matrix.identity(@columns)
     elsif other < 0
-      (other.abs - 1).times { m *= self }
-      m.inverse
+      repeated_square_power(other.abs).inverse
     elsif other == 1
       clone
     else
-      (other - 1).times { m *= self }
-      m
+      repeated_square_power(other)
     end
   end
 
