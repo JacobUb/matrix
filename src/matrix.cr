@@ -23,11 +23,16 @@ class Matrix(T)
 
   def_operators :+, :-, :*, :/, :^, :>>, :<<, :|, :&
 
-  def initialize(@rows : Int, @columns : Int)
+  @rows : Int32
+  @columns : Int32
+
+  def initialize(rows : Int, columns : Int)
+    @rows, @columns = rows.to_i, columns.to_i
     @buffer = Pointer(T).malloc(size)
   end
 
-  def initialize(@rows : Int, @columns : Int, value : T)
+  def initialize(rows : Int, columns : Int, value : T)
+    @rows, @columns = rows.to_i, columns.to_i
     @buffer = Pointer(T).malloc(size, value)
   end
 
