@@ -1,30 +1,27 @@
-class Matrix(T)
+struct Matrix(T)
   include Enumerable(T)
   include Iterable
 
-  macro def_exception(name, message)
-    class {{name.id}} < Exception
-      def initialize(msg = {{message}})
-        super(msg)
-      end
+  @rows : Int32
+  @columns : Int32
+
+  class DimensionMismatch < Exception
+    def initialize(msg = "Matrix dimension mismatch")
+      super msg
     end
   end
 
-  macro def_operators(*operators)
-    {% for operator in operators %}
-      def {{operator.id}}(other : T | Number)
-        map { |e| e {{operator.id}} other }
-      end
-    {% end %}
+  class NotRegular < Exception
+    def initialize(msg = "Non-regular Matrix")
+      super msg
+    end
   end
 
-  def_exception "DimensionMismatch", "Matrix dimension mismatch"
-  def_exception "NotRegular", "Non-regular Matrix"
-
-  def_operators :+, :-, :*, :/, :^, :>>, :<<, :|, :&
-
-  @rows : Int32
-  @columns : Int32
+  {% for op in %i(+ - * / ^ >> << | &) %}
+    def {{op.id}}(other : T | Number)
+      map { |e| e {{op.id}} other }
+    end
+  {% end %}
 
   def initialize(rows : Int, columns : Int)
     @rows, @columns = rows.to_i, columns.to_i
@@ -39,21 +36,21 @@ class Matrix(T)
   # Creates a matrix with the given number of rows and columns. It yields the
   # linear, row and column indexes in that order.
   def self.new(rows : Int, columns : Int, &block : Int32, Int32, Int32 -> T)
-    matrix = Matrix(T).new(rows, columns)
-    r, c = 0, 0
-    matrix.size.times do |i|
-      matrix[i] = yield i, r, c
-      c += 1
-      if r == rows
+    Matrix(T).new(rows, columns).tap do |m|
+      r, c = 0, 0
+      m.size.times do |i|
+        m[i] = yield i, r, c
         c += 1
-        r = 0
-      end
-      if c == columns
-        r += 1
-        c = 0
+        if r == rows
+          c += 1
+          r = 0
+        end
+        if c == columns
+          r += 1
+          c = 0
+        end
       end
     end
-    matrix
   end
 
   # Creates a matrix interpreting each argument as a row.
@@ -234,17 +231,18 @@ class Matrix(T)
     matrix
   end
 
-  def repeated_square_power(n)
-    result = Matrix.identity(@columns)
-    square = self
-
-    while n > 0
-      result *= square if (n & 1) == 1
-      square *= square
-      n = n >> 1
+  def *(other : Matrix)
+    raise DimensionMismatch.new unless @columns == other.row_count
+    new_rows, new_cols = @rows, other.column_count
+    Matrix(typeof(self[0] * other[0])).new(new_rows, new_cols).tap do |m|
+      pos = -1
+      @rows.times do |i|
+        new_cols.times do |j|
+          n = (0...@columns).reduce(0) { |memo, k| memo + at(i, k) * other[k, j] }
+          m[pos += 1] = typeof(self[0] * other[0]).new(n)
+        end
+      end
     end
-
-    result
   end
 
   # Performs exponentiation
@@ -259,6 +257,19 @@ class Matrix(T)
     else
       repeated_square_power(other)
     end
+  end
+
+  private def repeated_square_power(n)
+    result = Matrix.identity(@columns)
+    square = self
+
+    while n > 0
+      result *= square if (n & 1) == 1
+      square *= square
+      n >>= 1
+    end
+
+    result
   end
 
   # Performs division with another matrix.
@@ -283,36 +294,7 @@ class Matrix(T)
   #   :upper          -> yields elements at or above the diagonal
   #   :strict_upper   -> yields elements above the diagonal
   def each(which : Symbol)
-    case which
-    when :all
-      each { |e| yield e }
-    when :diagonal
-      each_with_index do |e, r, c|
-        yield e if r == c
-      end
-    when :off_diagonal
-      each_with_index do |e, r, c|
-        yield e if r != c
-      end
-    when :lower
-      each_with_index do |e, r, c|
-        yield e if r >= c
-      end
-    when :strict_lower
-      each_with_index do |e, r, c|
-        yield e if r > c
-      end
-    when :upper
-      each_with_index do |e, r, c|
-        yield e if r <= c
-      end
-    when :strict_upper
-      each_with_index do |e, r, c|
-        yield e if r < c
-      end
-    else
-      raise ArgumentError.new
-    end
+    each_with_index(which) { |e| yield e }
   end
 
   def each(which : Symbol = :all)
@@ -329,10 +311,10 @@ class Matrix(T)
       when :diagonal     then yield e, r, c if r == c
       when :off_diagonal then yield e, r, c if r != c
       when :lower        then yield e, r, c if r >= c
-      when :strict_lower then yield e, r, c if r > c
+      when :strict_lower then yield e, r, c if r >  c
       when :upper        then yield e, r, c if r <= c
-      when :strict_upper then yield e, r, c if r < c
-      else                    raise ArgumentError.new
+      when :strict_upper then yield e, r, c if r <  c
+      else raise ArgumentError.new
       end
       c += 1
       if r == @rows
@@ -503,7 +485,7 @@ class Matrix(T)
         case e
         when 0 then next
         when 1 then found += 1
-        else        return false
+        else return false
         end
       end
       return false unless found == 1
@@ -512,7 +494,7 @@ class Matrix(T)
         case e
         when 0 then next
         when 1 then found += 1
-        else        return false
+        else return false
         end
       end
       return false unless found == 1
@@ -563,19 +545,16 @@ class Matrix(T)
     start_row += @rows if start_row < 0
     start_col += @columns if start_col < 0
 
-    raise IndexError.new if start_row < 0
-    raise IndexError.new if start_col < 0
+    raise IndexError.new if start_row < 0 || start_col < 0
 
-    matrix = Matrix(T).new(rows, columns)
-
-    matrix.each_index do |r, c|
-      min_r = start_row - r + rows - 1
-      min_c = start_col - c + columns - 1
-      i = -1 - ((c + (r * columns)) - (rows * columns))
-      matrix[i] = at(min_r, min_c)
+    Matrix(T).new(rows, columns).tap do |m|
+      m.each_index do |r, c|
+        min_r = start_row - r + rows - 1
+        min_c = start_col - c + columns - 1
+        i = -1 - ((c + (r * columns)) - (rows * columns))
+        m[i] = at(min_r, min_c)
+      end
     end
-
-    matrix
   end
 
   # Returns a subsection of the matrix.
@@ -599,21 +578,21 @@ class Matrix(T)
       at(0) * at(3) - at(1) * at(2)
     when 3
       at(0) * at(4) * at(8) - at(0) * at(5) * at(7) -
-        at(1) * at(3) * at(8) + at(1) * at(5) * at(6) +
-        at(2) * at(3) * at(7) - at(2) * at(4) * at(6)
+      at(1) * at(3) * at(8) + at(1) * at(5) * at(6) +
+      at(2) * at(3) * at(7) - at(2) * at(4) * at(6)
     when 4
       at(0) * at(5) * at(10) * at(15) - at(0) * at(5) * at(11) * at(14) -
-        at(0) * at(6) * at(9) * at(15) + at(0) * at(6) * at(11) * at(13) +
-        at(0) * at(7) * at(9) * at(14) - at(0) * at(7) * at(10) * at(13) -
-        at(1) * at(4) * at(10) * at(15) + at(1) * at(4) * at(11) * at(14) +
-        at(1) * at(6) * at(8) * at(15) - at(1) * at(6) * at(11) * at(12) -
-        at(1) * at(7) * at(8) * at(14) + at(1) * at(7) * at(10) * at(12) +
-        at(2) * at(4) * at(9) * at(15) - at(2) * at(4) * at(11) * at(13) -
-        at(2) * at(5) * at(8) * at(15) + at(2) * at(5) * at(11) * at(12) +
-        at(2) * at(7) * at(8) * at(13) - at(2) * at(7) * at(9) * at(12) -
-        at(3) * at(4) * at(9) * at(14) + at(3) * at(4) * at(10) * at(13) +
-        at(3) * at(5) * at(8) * at(14) - at(3) * at(5) * at(10) * at(12) -
-        at(3) * at(6) * at(8) * at(13) + at(3) * at(6) * at(9) * at(12)
+      at(0) * at(6) * at(9) * at(15) + at(0) * at(6) * at(11) * at(13) +
+      at(0) * at(7) * at(9) * at(14) - at(0) * at(7) * at(10) * at(13) -
+      at(1) * at(4) * at(10) * at(15) + at(1) * at(4) * at(11) * at(14) +
+      at(1) * at(6) * at(8) * at(15) - at(1) * at(6) * at(11) * at(12) -
+      at(1) * at(7) * at(8) * at(14) + at(1) * at(7) * at(10) * at(12) +
+      at(2) * at(4) * at(9) * at(15) - at(2) * at(4) * at(11) * at(13) -
+      at(2) * at(5) * at(8) * at(15) + at(2) * at(5) * at(11) * at(12) +
+      at(2) * at(7) * at(8) * at(13) - at(2) * at(7) * at(9) * at(12) -
+      at(3) * at(4) * at(9) * at(14) + at(3) * at(4) * at(10) * at(13) +
+      at(3) * at(5) * at(8) * at(14) - at(3) * at(5) * at(10) * at(12) -
+      at(3) * at(6) * at(8) * at(13) + at(3) * at(6) * at(9) * at(12)
     else
       m = clone
       last = @rows - 1
@@ -712,33 +691,28 @@ class Matrix(T)
   end
 
   # Changes the rows into columns and vice versa.
-  def transpose!
-    first = 0
-    while first <= @columns * @rows - 1
-      succ = first
-      i = 0
-      loop do
-        i += 1
-        succ = (succ % @rows) * @columns + succ / @rows
-        break if succ <= first
-      end
-      unless i == 1 || succ < first
-        temp = at(succ = first)
-        loop do
-          i = (succ % @rows) * @columns + succ / @rows
-          self[succ] = i == first ? temp : at(i)
-          succ = i
-          break if succ <= first
-        end
-      end
-      first += 1
-    end
-    @rows, @columns = @columns, @rows
-    self
-  end
-
   def transpose
-    clone.transpose!
+    Matrix(T).new(@columns, @rows).tap do |m|
+      first = 0
+      while first <= @columns * @rows - 1
+        succ = first
+        i = 0
+        until succ <= first
+          i += 1
+          succ = (succ % @rows) * @columns + succ / @rows
+        end
+        unless i == 1 || succ < first
+          temp = at(succ = first)
+          loop do
+            i = (succ % @rows) * @columns + succ / @rows
+            m[succ] = i == first ? temp : at(i)
+            succ = i
+            break if succ <= first
+          end
+        end
+        first += 1
+      end
+    end
   end
 
   # Reverses the order of the matrix.
@@ -875,13 +849,13 @@ class Matrix(T)
   end
 
   def inspect(io : IO)
-    io << 'M' << 'a' << 't' << 'r' << 'i' << 'x' << '['
+    io << "Matrix["
     @rows.times do |t|
       io << '['
       i = 0
       row(t) do |e|
         e.inspect(io)
-        io << ',' << ' ' unless i == @columns - 1
+        io << ", " unless i == @columns - 1
         i += 1
       end
       io << ']'
@@ -901,11 +875,11 @@ class Matrix(T)
              when :all          then false
              when :diagonal     then @row != @col
              when :off_diagonal then @row == @col
-             when :lower        then @row < @col
+             when :lower        then @row <  @col
              when :strict_lower then @row <= @col
-             when :upper        then @row > @col
+             when :upper        then @row >  @col
              when :strict_upper then @row >= @col
-             else                    raise ArgumentError.new
+             else raise ArgumentError.new
              end
 
       no_more_rows? = @row + 1 >= @matrix.row_count
