@@ -1,6 +1,6 @@
 struct Matrix(T)
   include Enumerable(T)
-  include Iterable
+  include Iterable(T)
 
   @rows : Int32
   @columns : Int32
