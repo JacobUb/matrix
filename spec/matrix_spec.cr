@@ -181,7 +181,7 @@ describe Matrix do
     it "does division with another matrix (1)" do
       a = Matrix[[7, 6], [3, 9]]
       b = Matrix[[2, 9], [3, 1]]
-      c = Matrix[["0.44", "2.04"], ["0.96", "0.36"]]
+      c = Matrix[["0.44", "2.04"], ["0.9600000000000001", "0.3600000000000002"]]
       (a / b).map(&.to_s).should eq(c)
     end
 
@@ -634,14 +634,14 @@ describe Matrix do
     it "returns a hash: {row_index, column_index} => value (1)" do
       m = Matrix[[1, 2, 3], [4, 5, 6], [7, 8, 9]]
       h = { {0, 0} => 1, {0, 1} => 2, {0, 2} => 3, {1, 0} => 4, {1, 1} => 5,
-        {1, 2} => 6, {2, 0} => 7, {2, 1} => 8, {2, 2} => 9 }
+           {1, 2} => 6, {2, 0} => 7, {2, 1} => 8, {2, 2} => 9 }
       m.to_h.should eq(h)
     end
 
     it "returns a hash: {row_index, column_index} => value (2)" do
       m = Matrix[[1, 2], [3, 4], [5, 6], [7, 8]]
       h = { {0, 0} => 1, {0, 1} => 2, {1, 0} => 3, {1, 1} => 4, {2, 0} => 5,
-        {2, 1} => 6, {3, 0} => 7, {3, 1} => 8 }
+           {2, 1} => 6, {3, 0} => 7, {3, 1} => 8 }
       m.to_h.should eq(h)
     end
 

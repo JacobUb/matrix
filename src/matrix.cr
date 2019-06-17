@@ -311,10 +311,10 @@ struct Matrix(T)
       when :diagonal     then yield e, r, c if r == c
       when :off_diagonal then yield e, r, c if r != c
       when :lower        then yield e, r, c if r >= c
-      when :strict_lower then yield e, r, c if r >  c
+      when :strict_lower then yield e, r, c if r > c
       when :upper        then yield e, r, c if r <= c
-      when :strict_upper then yield e, r, c if r <  c
-      else raise ArgumentError.new
+      when :strict_upper then yield e, r, c if r < c
+      else                    raise ArgumentError.new
       end
       c += 1
       if r == @rows
@@ -485,7 +485,7 @@ struct Matrix(T)
         case e
         when 0 then next
         when 1 then found += 1
-        else return false
+        else        return false
         end
       end
       return false unless found == 1
@@ -494,7 +494,7 @@ struct Matrix(T)
         case e
         when 0 then next
         when 1 then found += 1
-        else return false
+        else        return false
         end
       end
       return false unless found == 1
@@ -578,21 +578,21 @@ struct Matrix(T)
       at(0) * at(3) - at(1) * at(2)
     when 3
       at(0) * at(4) * at(8) - at(0) * at(5) * at(7) -
-      at(1) * at(3) * at(8) + at(1) * at(5) * at(6) +
-      at(2) * at(3) * at(7) - at(2) * at(4) * at(6)
+        at(1) * at(3) * at(8) + at(1) * at(5) * at(6) +
+        at(2) * at(3) * at(7) - at(2) * at(4) * at(6)
     when 4
       at(0) * at(5) * at(10) * at(15) - at(0) * at(5) * at(11) * at(14) -
-      at(0) * at(6) * at(9) * at(15) + at(0) * at(6) * at(11) * at(13) +
-      at(0) * at(7) * at(9) * at(14) - at(0) * at(7) * at(10) * at(13) -
-      at(1) * at(4) * at(10) * at(15) + at(1) * at(4) * at(11) * at(14) +
-      at(1) * at(6) * at(8) * at(15) - at(1) * at(6) * at(11) * at(12) -
-      at(1) * at(7) * at(8) * at(14) + at(1) * at(7) * at(10) * at(12) +
-      at(2) * at(4) * at(9) * at(15) - at(2) * at(4) * at(11) * at(13) -
-      at(2) * at(5) * at(8) * at(15) + at(2) * at(5) * at(11) * at(12) +
-      at(2) * at(7) * at(8) * at(13) - at(2) * at(7) * at(9) * at(12) -
-      at(3) * at(4) * at(9) * at(14) + at(3) * at(4) * at(10) * at(13) +
-      at(3) * at(5) * at(8) * at(14) - at(3) * at(5) * at(10) * at(12) -
-      at(3) * at(6) * at(8) * at(13) + at(3) * at(6) * at(9) * at(12)
+        at(0) * at(6) * at(9) * at(15) + at(0) * at(6) * at(11) * at(13) +
+        at(0) * at(7) * at(9) * at(14) - at(0) * at(7) * at(10) * at(13) -
+        at(1) * at(4) * at(10) * at(15) + at(1) * at(4) * at(11) * at(14) +
+        at(1) * at(6) * at(8) * at(15) - at(1) * at(6) * at(11) * at(12) -
+        at(1) * at(7) * at(8) * at(14) + at(1) * at(7) * at(10) * at(12) +
+        at(2) * at(4) * at(9) * at(15) - at(2) * at(4) * at(11) * at(13) -
+        at(2) * at(5) * at(8) * at(15) + at(2) * at(5) * at(11) * at(12) +
+        at(2) * at(7) * at(8) * at(13) - at(2) * at(7) * at(9) * at(12) -
+        at(3) * at(4) * at(9) * at(14) + at(3) * at(4) * at(10) * at(13) +
+        at(3) * at(5) * at(8) * at(14) - at(3) * at(5) * at(10) * at(12) -
+        at(3) * at(6) * at(8) * at(13) + at(3) * at(6) * at(9) * at(12)
     else
       m = clone
       last = @rows - 1
@@ -875,20 +875,20 @@ struct Matrix(T)
              when :all          then false
              when :diagonal     then @row != @col
              when :off_diagonal then @row == @col
-             when :lower        then @row <  @col
+             when :lower        then @row < @col
              when :strict_lower then @row <= @col
-             when :upper        then @row >  @col
+             when :upper        then @row > @col
              when :strict_upper then @row >= @col
-             else raise ArgumentError.new
+             else                    raise ArgumentError.new
              end
 
-      no_more_rows? = @row + 1 >= @matrix.row_count
-      no_more_cols? = @col + 1 >= @matrix.column_count
+      no_more_rows = @row + 1 >= @matrix.row_count
+      no_more_cols = @col + 1 >= @matrix.column_count
 
-      if no_more_rows? && no_more_cols?
+      if no_more_rows && no_more_cols
         value = @matrix.at(@row, @col) { return stop }
         @col += 1
-      elsif !no_more_rows? && no_more_cols?
+      elsif !no_more_rows && no_more_cols
         value = @matrix[@row, @col]
         @col = 0
         @row += 1
@@ -926,12 +926,12 @@ struct Matrix(T)
              end
 
       value = {@row, @col}
-      no_more_rows? = @row + 1 >= @matrix.row_count
-      no_more_cols? = @col + 1 >= @matrix.column_count
-      if no_more_rows? && no_more_cols?
+      no_more_rows = @row + 1 >= @matrix.row_count
+      no_more_cols = @col + 1 >= @matrix.column_count
+      if no_more_rows && no_more_cols
         return stop if @col == @matrix.column_count
         @col += 1
-      elsif !no_more_rows? && no_more_cols?
+      elsif !no_more_rows && no_more_cols
         @col = 0
         @row += 1
       else
