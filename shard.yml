@@ -3,3 +3,5 @@ version: 0.1.0
 
 authors:
   - Exilor
+
+crystal: 0.29.0
