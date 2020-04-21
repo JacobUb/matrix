@@ -610,7 +610,7 @@ struct Matrix(T)
         end
         (k + 1).upto(last) do |i|
           (k + 1).upto(last) do |j|
-            m[i, j] = (pivot * m[i, j] - m[i, k] * m[k, j]) / previous_pivot
+            m[i, j] = (pivot * m[i, j] - m[i, k] * m[k, j]) // previous_pivot
           end
         end
       end
@@ -672,7 +672,7 @@ struct Matrix(T)
         pivot = m[pivot_row, k]
         (pivot_row + 1).upto(@rows - 1) do |i|
           (k + 1).upto(@columns - 1) do |j|
-            m[i, j] = (pivot * m[i, j] - m[i, k] * m[pivot_row, j]) / prev_piv
+            m[i, j] = (pivot * m[i, j] - m[i, k] * m[pivot_row, j]) // prev_piv
           end
         end
         pivot_row += 1
@@ -699,12 +699,12 @@ struct Matrix(T)
         i = 0
         until succ <= first
           i += 1
-          succ = (succ % @rows) * @columns + succ / @rows
+          succ = (succ % @rows) * @columns + succ // @rows
         end
         unless i == 1 || succ < first
           temp = at(succ = first)
           loop do
-            i = (succ % @rows) * @columns + succ / @rows
+            i = (succ % @rows) * @columns + succ // @rows
             m[succ] = i == first ? temp : at(i)
             succ = i
             break if succ <= first
