@@ -781,7 +781,7 @@ struct Matrix(T)
     raise IndexError.new if col_1 >= @columns || col_2 >= @columns
     col_1 += @columns if col_1 < 0
     col_2 += @columns if col_2 < 0
-    aise IndexError.new if col_1 < 0 || col_2 < 0
+    raise IndexError.new if col_1 < 0 || col_2 < 0
     @rows.times do |i|
       self[i, col_1], self[i, col_2] = at(i, col_2), at(i, col_1)
     end
