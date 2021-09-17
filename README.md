@@ -31,4 +31,4 @@ Matrix.new(2, 2) { |idx, row, col| col  }
  # 0, 1
 ```
 
-Most methods are documented in the matrix.cr file itself.
+Browse the documentation [here](https://plainas.github.io/Exilor/index.html).
